@@ -1,0 +1,160 @@
+{
+  "type": "object",
+  "required": ["code_review", "developer_score_evaluation"],
+  "properties": {
+    "code_review": {
+      "type": "object",
+      "required": [
+        "language",
+        "general_observations",
+        "best_practices",
+        "issues",
+        "code_simplification_and_optimization",
+        "error_handling",
+        "scalability",
+        "recommendations",
+        "summary"
+      ],
+      "properties": {
+        "language": {
+          "type": "string"
+        },
+        "general_observations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "best_practices": {
+          "type": "object",
+          "required": ["adherence", "violations"],
+          "properties": {
+            "adherence": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "violations": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["description", "function", "line_number"],
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "function": {
+                "type": "string"
+              },
+              "line_number": {
+                "type": ["integer", "string"]
+              }
+            }
+          }
+        },
+        "code_simplification_and_optimization": {
+          "type": "object",
+          "required": ["feedback"],
+          "properties": {
+            "feedback": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "error_handling": {
+          "type": "object",
+          "required": ["current_state", "proposed_improvements"],
+          "properties": {
+            "current_state": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "proposed_improvements": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "scalability": {
+          "type": "object",
+          "required": ["analysis", "enhancements"],
+          "properties": {
+            "analysis": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "enhancements": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "summary": {
+          "type": "string"
+        }
+      }
+    },
+    "developer_score_evaluation": {
+      "type": "object",
+      "required": ["overall_score", "dimension_scores"],
+      "properties": {
+        "overall_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "dimension_scores": {
+          "type": "object",
+          "required": [
+            "readability",
+            "maintainability",
+            "error_handling",
+            "performance",
+            "best_practices",
+            "testability"
+          ],
+          "properties": {
+            "readability": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maintainability": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "error_handling": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "performance": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "best_practices": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "testability": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Refresh Token Expiry Alert</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+  <h2 style="color: red;">⚠️ Refresh Token Expiry Alert</h2>
+
+  <p>Hello Team,</p>
+
+  <p>
+    The ADP refresh token used by <b>Vijania</b> will expire in
+    <b>{{daysLeft}}</b> days.
+  </p>
+
+  <p>
+    Token created on: <b>{{tokenCreatedAt}}</b>
+  </p>
+
+  <p>
+    Please rotate the token before expiry to avoid service disruption.
+  </p>
+
+  <hr />
+  <small>This is an automated CI notification.</small>
+</body>
+</html>

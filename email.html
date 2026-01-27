@@ -2,27 +2,59 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Refresh Token Expiry Alert</title>
+  <title>Refresh Token Rotated Successfully</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      padding: 20px;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 24px;
+      border-radius: 6px;
+      max-width: 600px;
+      margin: auto;
+    }
+    .success {
+      color: #2e7d32;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .info {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #333333;
+    }
+    .footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #777777;
+    }
+  </style>
 </head>
-<body style="font-family: Arial, sans-serif;">
-  <h2 style="color: red;">⚠️ Refresh Token Expiry Alert</h2>
 
-  <p>Hello Team,</p>
+<body>
+  <div class="container">
+    <p class="success">✅ Refresh Token Rotated Successfully</p>
 
-  <p>
-    The ADP refresh token used by <b>Vijania</b> will expire in
-    <b>{{daysLeft}}</b> days.
-  </p>
+    <p class="info">
+      The <strong>EDP / ADP refresh token</strong> has been rotated successfully.
+    </p>
 
-  <p>
-    Token created on: <b>{{tokenCreatedAt}}</b>
-  </p>
+    <p class="info">
+      <strong>Rotation timestamp (UTC):</strong><br />
+      {{rotatedAt}}
+    </p>
 
-  <p>
-    Please rotate the token before expiry to avoid service disruption.
-  </p>
+    <p class="info">
+      The expiry monitoring schedule has been reset automatically.
+    </p>
 
-  <hr />
-  <small>This is an automated CI notification.</small>
+    <div class="footer">
+      This is an automated notification from the CI token management pipeline.<br />
+      No action is required.
+    </div>
+  </div>
 </body>
 </html>

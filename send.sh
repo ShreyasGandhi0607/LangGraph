@@ -1,26 +1,35 @@
 #!/bin/bash
 set -e
 
-source ci-email/token_expiry_check.sh
+EXPIRY_DAYS=30
+REMIND_DAYS=(21 7 5 3 1)
 
-if [[ "$SHOULD_NOTIFY" != "true" ]]; then
-  echo "No email required today"
-  exit 0
+if [[ -z "$REFRESH_TOKEN_CREATED_AT" ]]; then
+  echo "REFRESH_TOKEN_CREATED_AT is not set"
+  exit 1
 fi
 
-source ci-email/email_payload_data.sh
-source ci-email/aws_ses_send_email.sh
+CREATED_EPOCH=$(date -u -d "$REFRESH_TOKEN_CREATED_AT" +%s)
+NOW_EPOCH=$(date -u +%s)
 
-declare -A DYNAMIC_PROPERTIES=(
-  ["flowType"]="TOKEN_EXPIRY"
-  ["daysLeft"]="$DAYS_LEFT"
-  ["tokenCreatedAt"]="$REFRESH_TOKEN_CREATED_AT"
-)
+if (( CREATED_EPOCH > NOW_EPOCH )); then
+  DAYS_PASSED=0
+else
+  DAYS_PASSED=$(( (NOW_EPOCH - CREATED_EPOCH) / 86400 ))
+fi
 
-declare -A EMAIL_CONFIG=(
-  ["TO"]="dev@company.com"
-  ["SUBJECT"]="⚠️ Refresh token expires in $DAYS_LEFT days"
-)
+DAYS_LEFT=$(( EXPIRY_DAYS - DAYS_PASSED ))
 
-rocheGenerate_payloadFunction DYNAMIC_PROPERTIES EMAIL_CONFIG
-rochePipeline_awsSesSendEmailFunction
+export DAYS_LEFT
+export SHOULD_NOTIFY="false"
+
+for d in "${REMIND_DAYS[@]}"; do
+  if [[ "$DAYS_LEFT" -eq "$d" ]]; then
+    SHOULD_NOTIFY="true"
+    break
+  fi
+done
+
+export SHOULD_NOTIFY
+
+echo "Refresh token days left: $DAYS_LEFT"

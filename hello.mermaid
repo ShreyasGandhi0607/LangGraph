@@ -1,76 +1,47 @@
 flowchart TD
-    ENTRY([ENTRY])
-
     ENTRY --> NormalizeInput
     NormalizeInput --> IntentDetection
     IntentDetection --> IntentConfidenceGate
 
-    IntentConfidenceGate -->|Low confidence| ClarificationFlow
-    ClarificationFlow --> ResponseFormatter
+    IntentConfidenceGate -->|low| ClarificationFlow --> ResponseFormatter --> END
+    IntentConfidenceGate -->|high| EntityExtraction
 
-    IntentConfidenceGate -->|High confidence| EntityExtraction
     EntityExtraction --> DomainValidation
     DomainValidation --> IntentRouter
 
-    %% Intent router branches
-    IntentRouter -->|procurement| ProcurementFlow
-    IntentRouter -->|dns| DNSFlow
-    IntentRouter -->|nameserver| NameserverFlow
-    IntentRouter -->|transfer| TransferFlow
-    IntentRouter -->|ownership| OwnershipFlow
-    IntentRouter -->|url_redirect| URLRedirectFlow
-    IntentRouter -->|subdomain| SubdomainRejectFlow
-    IntentRouter -->|general| GeneralInquiryFlow
+    IntentRouter --> ProcurementFlow
+    IntentRouter --> DNSFlow
+    IntentRouter --> NameserverFlow
+    IntentRouter --> TransferFlow
+    IntentRouter --> OwnershipFlow
+    IntentRouter --> URLRedirectFlow
+    IntentRouter --> SubdomainRejectFlow
+    IntentRouter --> GeneralInquiryFlow
 
-    %% Procurement
-    ProcurementFlow --> CheckDomainAvailabilityTool
-    CheckDomainAvailabilityTool --> ValidateBusinessContextTool
-    ValidateBusinessContextTool --> CreateICARETicketTool
-    CreateICARETicketTool --> ProcurementResponseNode
+    ProcurementFlow --> DomainRegistryLookupTool
+    ProcurementFlow --> ServiceNowTicketTool
+    ProcurementFlow --> ResponseFormatter
 
-    %% DNS
-    DNSFlow --> ValidateDomainOwnershipTool
-    ValidateDomainOwnershipTool --> LookupDNSProviderTool
-    LookupDNSProviderTool --> FetchDNSChangeFormTool
-    FetchDNSChangeFormTool --> DNSResponseNode
+    DNSFlow --> DNSProviderLookupTool
+    DNSFlow --> ResponseFormatter
 
-    %% Nameserver
-    NameserverFlow --> ValidateDomainOwnershipTool_NS
-    ValidateDomainOwnershipTool_NS --> NameserverResponseNode
+    NameserverFlow --> DomainRegistryLookupTool
+    NameserverFlow --> ResponseFormatter
 
-    %% Transfer
-    TransferFlow --> ValidateTransferEligibilityTool
-    ValidateTransferEligibilityTool --> IdentifyRegistrarTool
-    IdentifyRegistrarTool --> CreateTransferRequestTool
-    CreateTransferRequestTool --> TransferResponseNode
+    TransferFlow --> DomainRegistryLookupTool
+    TransferFlow --> ServiceNowTicketTool
+    TransferFlow --> ResponseFormatter
 
-    %% Ownership
-    OwnershipFlow --> LookupDomainInDISTool
-    LookupDomainInDISTool --> FetchOwnerContactsTool
-    FetchOwnerContactsTool --> OwnershipResponseNode
+    OwnershipFlow --> DomainRegistryLookupTool
+    OwnershipFlow --> ResponseFormatter
 
-    %% URL Redirect
-    URLRedirectFlow --> ValidateDomainTool
-    ValidateDomainTool --> IdentifyRedirectOwnerTool
-    IdentifyRedirectOwnerTool --> RedirectResponseNode
+    URLRedirectFlow --> DomainRegistryLookupTool
+    URLRedirectFlow --> ResponseFormatter
 
-    %% Subdomain reject
-    SubdomainRejectFlow --> ExtractParentDomainTool
-    ExtractParentDomainTool --> LookupNameServersTool
-    LookupNameServersTool --> SubdomainRejectionResponseNode
+    SubdomainRejectFlow --> DNSProviderLookupTool
+    SubdomainRejectFlow --> ResponseFormatter
 
-    %% General
     GeneralInquiryFlow --> KnowledgeLookupTool
-    KnowledgeLookupTool --> GeneralResponseNode
+    GeneralInquiryFlow --> ResponseFormatter
 
-    %% End
-    ProcurementResponseNode --> ResponseFormatter
-    DNSResponseNode --> ResponseFormatter
-    NameserverResponseNode --> ResponseFormatter
-    TransferResponseNode --> ResponseFormatter
-    OwnershipResponseNode --> ResponseFormatter
-    RedirectResponseNode --> ResponseFormatter
-    SubdomainRejectionResponseNode --> ResponseFormatter
-    GeneralResponseNode --> ResponseFormatter
-
-    ResponseFormatter --> END([END])
+    ResponseFormatter --> END

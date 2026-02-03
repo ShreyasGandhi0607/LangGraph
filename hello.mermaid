@@ -18,30 +18,13 @@ flowchart TD
     IntentRouter --> SubdomainRejectFlow
     IntentRouter --> GeneralInquiryFlow
 
-    ProcurementFlow --> DomainRegistryLookupTool
-    ProcurementFlow --> ServiceNowTicketTool
     ProcurementFlow --> ResponseFormatter
-
-    DNSFlow --> DNSProviderLookupTool
     DNSFlow --> ResponseFormatter
-
-    NameserverFlow --> DomainRegistryLookupTool
     NameserverFlow --> ResponseFormatter
-
-    TransferFlow --> DomainRegistryLookupTool
-    TransferFlow --> ServiceNowTicketTool
     TransferFlow --> ResponseFormatter
-
-    OwnershipFlow --> DomainRegistryLookupTool
     OwnershipFlow --> ResponseFormatter
-
-    URLRedirectFlow --> DomainRegistryLookupTool
     URLRedirectFlow --> ResponseFormatter
-
-    SubdomainRejectFlow --> DNSProviderLookupTool
     SubdomainRejectFlow --> ResponseFormatter
-
-    GeneralInquiryFlow --> KnowledgeLookupTool
     GeneralInquiryFlow --> ResponseFormatter
 
     ResponseFormatter --> END

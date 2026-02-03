@@ -1,0 +1,76 @@
+flowchart TD
+    ENTRY([ENTRY])
+
+    ENTRY --> NormalizeInput
+    NormalizeInput --> IntentDetection
+    IntentDetection --> IntentConfidenceGate
+
+    IntentConfidenceGate -->|Low confidence| ClarificationFlow
+    ClarificationFlow --> ResponseFormatter
+
+    IntentConfidenceGate -->|High confidence| EntityExtraction
+    EntityExtraction --> DomainValidation
+    DomainValidation --> IntentRouter
+
+    %% Intent router branches
+    IntentRouter -->|procurement| ProcurementFlow
+    IntentRouter -->|dns| DNSFlow
+    IntentRouter -->|nameserver| NameserverFlow
+    IntentRouter -->|transfer| TransferFlow
+    IntentRouter -->|ownership| OwnershipFlow
+    IntentRouter -->|url_redirect| URLRedirectFlow
+    IntentRouter -->|subdomain| SubdomainRejectFlow
+    IntentRouter -->|general| GeneralInquiryFlow
+
+    %% Procurement
+    ProcurementFlow --> CheckDomainAvailabilityTool
+    CheckDomainAvailabilityTool --> ValidateBusinessContextTool
+    ValidateBusinessContextTool --> CreateICARETicketTool
+    CreateICARETicketTool --> ProcurementResponseNode
+
+    %% DNS
+    DNSFlow --> ValidateDomainOwnershipTool
+    ValidateDomainOwnershipTool --> LookupDNSProviderTool
+    LookupDNSProviderTool --> FetchDNSChangeFormTool
+    FetchDNSChangeFormTool --> DNSResponseNode
+
+    %% Nameserver
+    NameserverFlow --> ValidateDomainOwnershipTool_NS
+    ValidateDomainOwnershipTool_NS --> NameserverResponseNode
+
+    %% Transfer
+    TransferFlow --> ValidateTransferEligibilityTool
+    ValidateTransferEligibilityTool --> IdentifyRegistrarTool
+    IdentifyRegistrarTool --> CreateTransferRequestTool
+    CreateTransferRequestTool --> TransferResponseNode
+
+    %% Ownership
+    OwnershipFlow --> LookupDomainInDISTool
+    LookupDomainInDISTool --> FetchOwnerContactsTool
+    FetchOwnerContactsTool --> OwnershipResponseNode
+
+    %% URL Redirect
+    URLRedirectFlow --> ValidateDomainTool
+    ValidateDomainTool --> IdentifyRedirectOwnerTool
+    IdentifyRedirectOwnerTool --> RedirectResponseNode
+
+    %% Subdomain reject
+    SubdomainRejectFlow --> ExtractParentDomainTool
+    ExtractParentDomainTool --> LookupNameServersTool
+    LookupNameServersTool --> SubdomainRejectionResponseNode
+
+    %% General
+    GeneralInquiryFlow --> KnowledgeLookupTool
+    KnowledgeLookupTool --> GeneralResponseNode
+
+    %% End
+    ProcurementResponseNode --> ResponseFormatter
+    DNSResponseNode --> ResponseFormatter
+    NameserverResponseNode --> ResponseFormatter
+    TransferResponseNode --> ResponseFormatter
+    OwnershipResponseNode --> ResponseFormatter
+    RedirectResponseNode --> ResponseFormatter
+    SubdomainRejectionResponseNode --> ResponseFormatter
+    GeneralResponseNode --> ResponseFormatter
+
+    ResponseFormatter --> END([END])

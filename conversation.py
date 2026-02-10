@@ -1,60 +1,64 @@
 from graph import app
 
 
-def print_conversation(state):
-    print("\n" + "=" * 50)
-    print("CONVERSATION")
-    print("=" * 50)
-    for msg in state["messages"]:
-        role = msg["role"].upper()
-        print(f"{role}: {msg['content']}")
-    print("=" * 50 + "\n")
+THREAD_ID = "conversation-test-001"
 
 
-def run_conversation(user_inputs):
+def invoke(state):
     """
-    user_inputs: list[str]
-    Each entry simulates one user turn
+    Wrapper to always pass checkpoint config
     """
+    return app.invoke(
+        state,
+        config={
+            "configurable": {
+                "thread_id": THREAD_ID
+            }
+        }
+    )
 
+
+def print_last_assistant_message(state):
+    for msg in reversed(state["messages"]):
+        if msg["role"] == "assistant":
+            print("ASSISTANT:", msg["content"])
+            return
+
+
+def run():
     state = {
         "messages": []
     }
 
-    for user_msg in user_inputs:
-        # User sends a message
-        state["messages"].append({
-            "role": "user",
-            "content": user_msg
-        })
+    print("\n### TURN 1 ###")
+    state["messages"].append({
+        "role": "user",
+        "content": "Procure code.com and transfer example.org"
+    })
+    state = invoke(state)
+    print_last_assistant_message(state)
 
-        # Invoke graph with updated state
-        state = app.invoke(state)
+    print("\n### TURN 2 ###")
+    state["messages"].append({
+        "role": "user",
+        "content": "Account id is 123"
+    })
+    state = invoke(state)
+    print_last_assistant_message(state)
 
-        # Print conversation after each turn
-        print_conversation(state)
+    print("\n### TURN 3 ###")
+    state["messages"].append({
+        "role": "user",
+        "content": "Auth code is XYZ-999"
+    })
+    state = invoke(state)
 
-    return state
+    # Print all assistant outputs at the end
+    print("\n### FINAL OUTPUT ###")
+    for msg in state["messages"]:
+        if msg["role"] == "assistant":
+            print("ASSISTANT:", msg["content"])
 
 
 if __name__ == "__main__":
-    # -------------------------------
-    # TEST 1: SINGLE TASK (PROCURE)
-    # -------------------------------
-    print("\n### TEST 1: SINGLE TASK (PROCURE) ###")
-
-    run_conversation([
-        "I want to procure code.com",
-        "My account id is 12345"
-    ])
-
-    # -------------------------------
-    # TEST 2: MULTI TASK
-    # -------------------------------
-    print("\n### TEST 2: MULTI TASK (PROCURE + TRANSFER) ###")
-
-    run_conversation([
-        "Procure code.com and transfer example.org",
-        "Account id is 123",
-        "Auth code is XYZ-999"
-    ])
+    run()

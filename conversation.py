@@ -1,60 +1,36 @@
 from graph import app
 
-THREAD_ID = "conversation-test-001"
+config = {
+    "configurable": {
+        "thread_id": "conversation-test-1"
+    }
+}
 
+state = {
+    "messages": []
+}
 
-def invoke_app(state):
-    """
-    ALWAYS invoke graph with checkpoint config
-    """
-    return app.invoke(
-        state,
-        config={
-            "configurable": {
-                "thread_id": THREAD_ID
-            }
-        }
-    )
+print("\n### TURN 1 ###")
+state = run_turn(
+    state,
+    "Procure code.com and transfer example.org",
+    config
+)
 
+print("\n### TURN 2 ###")
+state = run_turn(
+    state,
+    "Account id is 123",
+    config
+)
 
-def print_assistant(state):
-    for msg in reversed(state["messages"]):
-        if msg["role"] == "assistant":
-            print("ASSISTANT:", msg["content"])
-            return
+print("\n### TURN 3 ###")
+state = run_turn(
+    state,
+    "Auth code is XYZ-999",
+    config
+)
 
-
-def run():
-    state = {"messages": []}
-
-    print("\n### TURN 1 ###")
-    state["messages"].append({
-        "role": "user",
-        "content": "Procure code.com and transfer example.org"
-    })
-    state = invoke_app(state)
-    print_assistant(state)
-
-    print("\n### TURN 2 ###")
-    state["messages"].append({
-        "role": "user",
-        "content": "Account id is 123"
-    })
-    state = invoke_app(state)
-    print_assistant(state)
-
-    print("\n### TURN 3 ###")
-    state["messages"].append({
-        "role": "user",
-        "content": "Auth code is XYZ-999"
-    })
-    state = invoke_app(state)
-
-    print("\n### FINAL OUTPUT ###")
-    for msg in state["messages"]:
-        if msg["role"] == "assistant":
-            print("ASSISTANT:", msg["content"])
-
-
-if __name__ == "__main__":
-    run()
+print("\n### FINAL STATE ###")
+for m in state["messages"]:
+    print(m["role"], ":", m["content"])

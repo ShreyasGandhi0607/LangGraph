@@ -1,188 +1,142 @@
-import asyncio
-from typing import Dict, Optional, List
+# -----------------------------------------------------------
+# IMPORTANT: This MUST be the first import (fixes VDI SSL issue)
+# -----------------------------------------------------------
+import pip_system_certs.wrapt_requests
 
 import httpx
+from typing import Dict, Optional
 
 
-# Known stable RDAP endpoints
+# -----------------------------------------------------------
+# RDAP Servers (Correct Registry Endpoints)
+# -----------------------------------------------------------
 RDAP_SERVERS = {
     "com": "https://rdap.verisign.com/com/v1/domain/",
     "net": "https://rdap.verisign.com/net/v1/domain/",
-    "org": "https://rdap.publicinterestregistry.org/rdap/org/domain/",
-    "in": "https://rdap.registry.in/rdap/domain/",
-    "ai": "https://rdap.nic.ai/rdap/domain/",
+    "org": "https://rdap.publicinterestregistry.org/rdap/domain/",
+    "in":  "https://rdap.registry.in/rdap/domain/",
+    "ai":  "https://rdap.nic.ai/domain/",
+    "io":  "https://rdap.nic.io/domain/",
 }
 
 
-class RDAPService:
-    def __init__(self, timeout: int = 10, max_retries: int = 2):
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.client = httpx.AsyncClient(timeout=self.timeout)
+# -----------------------------------------------------------
+# Main Function: Check Domain
+# -----------------------------------------------------------
+def check_domain(domain: str) -> Dict[str, Optional[str]]:
+    """
+    Check domain registration status using RDAP.
+    """
 
-    # ----------------------------
-    # Utility
-    # ----------------------------
+    domain = domain.strip().lower()
 
-    def _get_tld(self, domain: str) -> str:
-        return domain.strip().lower().split(".")[-1]
+    if "." not in domain:
+        return _error("Invalid domain format")
 
-    async def _discover_rdap_server(self, tld: str) -> Optional[str]:
-        """
-        Uses IANA RDAP bootstrap file to discover correct RDAP base URL.
-        """
-        bootstrap_url = "https://data.iana.org/rdap/dns.json"
+    tld = domain.split(".")[-1]
 
-        try:
-            response = await self.client.get(bootstrap_url)
-            data = response.json()
+    if tld not in RDAP_SERVERS:
+        return _error(f"Unsupported TLD: .{tld}")
 
-            for service in data.get("services", []):
-                tlds = service[0]
-                servers = service[1]
+    url = RDAP_SERVERS[tld] + domain
 
-                if tld in tlds and servers:
-                    base = servers[0].rstrip("/")
-                    return f"{base}/domain/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (DomainChecker/1.0)",
+        "Accept": "application/rdap+json, application/json"
+    }
 
-        except Exception:
-            pass
+    try:
+        response = httpx.get(
+            url,
+            headers=headers,
+            timeout=10,
+            follow_redirects=True
+        )
 
-        return None
+        data = response.json()
 
-    async def _get_rdap_url(self, domain: str) -> Optional[str]:
-        tld = self._get_tld(domain)
-
-        if tld in RDAP_SERVERS:
-            return RDAP_SERVERS[tld] + domain
-
-        discovered = await self._discover_rdap_server(tld)
-        if discovered:
-            return discovered + domain
-
-        return None
-
-    # ----------------------------
-    # Core Lookup
-    # ----------------------------
-
-    async def lookup(self, domain: str) -> Dict:
-        url = await self._get_rdap_url(domain)
-
-        if not url:
+        # Some registries return 200 even if NOT registered
+        if "errorCode" in data:
             return {
-                "domain": domain,
-                "supported": False,
-                "error": "TLD not supported",
+                "registered": False,
+                "registrar": None,
+                "expiration_date": None,
+                "error": None
             }
 
-        for attempt in range(self.max_retries):
-            try:
-                response = await self.client.get(url)
+        registrar = _extract_registrar(data)
+        expiration_date = _extract_expiration_date(data)
 
-                # Most registries return 4xx if domain not found
-                if response.status_code != 200:
-                    return {
-                        "domain": domain,
-                        "available": True,
-                        "registered": False,
-                    }
-
-                data = response.json()
-
-                # Some registries return error inside JSON
-                if data.get("objectClassName") != "domain":
-                    return {
-                        "domain": domain,
-                        "available": True,
-                        "registered": False,
-                    }
-
-                return self._parse(domain, data)
-
-            except httpx.TimeoutException:
-                if attempt == self.max_retries - 1:
-                    return {
-                        "domain": domain,
-                        "error": "Request timeout",
-                    }
-                await asyncio.sleep(1)
-
-            except httpx.RequestError as e:
-                if attempt == self.max_retries - 1:
-                    return {
-                        "domain": domain,
-                        "error": f"Connection error: {str(e)}",
-                    }
-                await asyncio.sleep(1)
-
-            except Exception as e:
-                return {
-                    "domain": domain,
-                    "error": f"Unexpected error: {str(e)}",
-                }
-
-    # ----------------------------
-    # Parsing
-    # ----------------------------
-
-    def _parse(self, domain: str, data: Dict) -> Dict:
-        result = {
-            "domain": domain,
-            "available": False,
+        return {
             "registered": True,
-            "creation_date": None,
-            "expiration_date": None,
-            "updated_date": None,
-            "status": data.get("status", []),
-            "nameservers": [],
-            "registrar": None,
-            "iana_id": None,
-            "abuse_email": None,
-            "abuse_phone": None,
+            "registrar": registrar,
+            "expiration_date": expiration_date,
+            "error": None
         }
 
-        # Events
-        for event in data.get("events", []):
-            action = event.get("eventAction")
-            if action == "registration":
-                result["creation_date"] = event.get("eventDate")
-            elif action == "expiration":
-                result["expiration_date"] = event.get("eventDate")
-            elif action in ("last changed", "last update of RDAP database"):
-                result["updated_date"] = event.get("eventDate")
+    except httpx.RequestError as e:
+        return _error(f"Network error: {str(e)}")
 
-        # Nameservers
-        for ns in data.get("nameservers", []):
-            if ns.get("ldhName"):
-                result["nameservers"].append(ns["ldhName"])
+    except Exception as e:
+        return _error(f"Unexpected error: {str(e)}")
 
-        # Registrar
-        for entity in data.get("entities", []):
+
+# -----------------------------------------------------------
+# Helper: Extract Registrar
+# -----------------------------------------------------------
+def _extract_registrar(rdap_data: dict) -> Optional[str]:
+    try:
+        for entity in rdap_data.get("entities", []):
             if "registrar" in entity.get("roles", []):
-                result["iana_id"] = (
-                    entity.get("publicIds", [{}])[0].get("identifier")
-                )
-
                 vcard = entity.get("vcardArray", [])
                 if len(vcard) > 1:
                     for field in vcard[1]:
                         if field[0] == "fn":
-                            result["registrar"] = field[3]
-                        elif field[0] == "email":
-                            result["abuse_email"] = field[3]
-                        elif field[0] == "tel":
-                            result["abuse_phone"] = field[3]
+                            return field[3]
+        return "Unknown"
+    except Exception:
+        return "Unknown"
 
-        return result
 
-    # ----------------------------
-    # Batch Lookup
-    # ----------------------------
+# -----------------------------------------------------------
+# Helper: Extract Expiration Date
+# -----------------------------------------------------------
+def _extract_expiration_date(rdap_data: dict) -> Optional[str]:
+    try:
+        for event in rdap_data.get("events", []):
+            if event.get("eventAction") == "expiration":
+                return event.get("eventDate")
+        return "N/A"
+    except Exception:
+        return "N/A"
 
-    async def lookup_many(self, domains: List[str]) -> List[Dict]:
-        tasks = [self.lookup(domain) for domain in domains]
-        return await asyncio.gather(*tasks)
 
-    async def close(self):
-        await self.client.aclose()
+# -----------------------------------------------------------
+# Helper: Standard Error Response
+# -----------------------------------------------------------
+def _error(message: str) -> Dict[str, Optional[str]]:
+    return {
+        "registered": None,
+        "registrar": None,
+        "expiration_date": None,
+        "error": message
+    }
+
+
+# -----------------------------------------------------------
+# Local Test Runner
+# -----------------------------------------------------------
+if __name__ == "__main__":
+    test_domains = [
+        "google.com",
+        "wikipedia.org",
+        "nic.in",
+        "openai.com",
+        "example.ai",
+        "github.io"
+    ]
+
+    for d in test_domains:
+        print(f"\nChecking: {d}")
+        result = check_domain(d)
+        print(result)

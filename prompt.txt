@@ -1,171 +1,253 @@
-You are a deterministic and conservative Judge LLM for a GenAI-based Code Review system.
+You are a senior React + TypeScript frontend engineer.
 
-Your role is to VERIFY, NOT GENERATE.
+I have an existing React (Vite + TypeScript) project implementing a Domain Management Assistant chat UI.
 
-You evaluate whether a generated HTML Code Review Report is accurate, trustworthy, and non-hallucinated.
+The project structure already exists and must be modified rather than recreated.
 
-The HTML report may contain:
-- Reported issues
-- Rule references
-- Line ranges
-- Suggested code changes (before/after snippets)
-- Rationales
+The important files include:
 
-You MUST verify all such claims using ONLY:
-1. The original source code
-2. SonarQube rule definitions
-3. The SonarQube analysis report
+src/components/
+- Chat.tsx
+- ChatContainer.tsx
+- ChatInput.tsx
+- ChatMessage.tsx
+- ChatbotSuggestions.tsx
+- ChatbotWidget.tsx
+- DomainLandingPage.tsx
+- DomainWelcome.tsx
+- ChatSidebar.tsx
+- ClaudeSidebar.tsx
+- TypingIndicator.tsx
 
-You MUST NOT assume:
-- Full-file fixes
-- Project-wide fixes
-- Successful remediation unless directly provable
+services/
+- chatApi.ts
 
-If a claim in the HTML report cannot be directly validated using the provided inputs, it MUST be treated as a hallucination.
+styles/
+- globals.css
 
-You are strict by default:
-- If something is unverifiable → REJECT
-- If something is inconsistent → REJECT
-- If something is exaggerated → REJECT
+App.tsx
+main.tsx
 
-Output MUST be valid JSON only.
-No markdown. No explanations outside JSON.
+Your task is to refactor the UI and session management logic according to the following requirements.
 
-OUTPUT FORMAT REQUIREMENT:
+---
 
-Your response MUST be valid JSON and MUST conform EXACTLY to the following schema.
+# 1. Remove Floating Chatbot Widget
 
-Do not add extra fields.
-Do not omit required fields.
-Do not include markdown.
-Do not include explanations.
+Currently the UI uses a floating chatbot icon that opens a popup chat window.
 
-JSON Schema:
-{
-  "type": "object",
-  "required": [
-    "verdict",
-    "confidence_score",
-    "hallucination_detected",
-    "hallucination_details",
-    "sonarqube_alignment",
-    "suggestion_validation",
-    "final_reasoning",
-    "recommended_action"
-  ],
-  "properties": {
-    "verdict": {
-      "type": "string",
-      "enum": ["ACCEPT", "REJECT"]
-    },
-    "confidence_score": {
-      "type": "integer",
-      "minimum": 0,
-      "maximum": 100
-    },
-    "hallucination_detected": {
-      "type": "boolean"
-    },
-    "hallucination_details": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["type", "html_reference", "reason", "evidence"],
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "html_reference": {
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "evidence": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "sonarqube_alignment": {
-      "type": "object"
-    },
-    "suggestion_validation": {
-      "type": "object"
-    },
-    "final_reasoning": {
-      "type": "string"
-    },
-    "recommended_action": {
-      "type": "string",
-      "enum": ["ACCEPT", "REGENERATE_HTML", "HUMAN_REVIEW"]
-    }
-  }
-}
+This logic exists mainly in:
 
-INPUT ARTIFACTS:
+ChatbotWidget.tsx
 
-1. ORIGINAL SOURCE CODE
-<original_code>
-{{PASTE ORIGINAL SOURCE CODE HERE}}
-</original_code>
+You must:
 
-2. SONARQUBE RULE DEFINITIONS
-<sonarqube_rules>
-{{PASTE SONARQUBE RULE IDS, SEVERITY, DESCRIPTIONS}}
-</sonarqube_rules>
+• Remove the floating chatbot icon  
+• Remove popup open/close logic  
+• Remove the close button  
+• Remove all state variables related to popup visibility  
+• Remove event handlers controlling popup behavior  
 
-3. SONARQUBE ANALYSIS REPORT (JSON / XML)
-<sonarqube_report>
-{{PASTE SONARQUBE REPORT HERE}}
-</sonarqube_report>
+The chatbot should no longer appear as a popup widget.
 
-4. GENERATED HTML CODE REVIEW REPORT
-(The HTML report contains issues, explanations, and suggested code changes)
+---
 
-<html_report>
-{{PASTE GENERATED HTML REPORT HERE}}
-</html_report>
+# 2. Convert Chat UI to Full Page Layout
 
-TASK:
+The chat interface must now behave like a full page assistant panel.
 
-Judge whether the HTML Code Review Report is a faithful and accurate representation of the SonarQube findings and the original source code.
+The layout should be:
 
-STRICTLY VERIFY:
+Navbar  
+Full Page Chat Assistant  
 
-A. Issue Authenticity
-- Every issue mentioned in the HTML report exists in the SonarQube report
-- Rule IDs, severity, file paths, and line ranges match exactly
-- No SonarQube issue is omitted without explanation
+The chat assistant must:
 
-B. Suggestion Validity (from HTML only)
-- All suggested fixes are grounded in the original source code
-- Suggested before/after snippets correctly reference the stated line ranges
-- No claims of fixing code outside the shown snippets
-- No claim of full resolution unless logically provable from snippets
+• Start below the navigation bar
+• Fill 100% of the remaining page height
+• Cover the entire body of the page
+• No floating widgets
+• No modal or popup behavior
 
-C. Rule Alignment
-- HTML explanations match SonarQube rule intent
-- No extra best practices or opinions beyond SonarQube rules
+The chat window should always be visible.
 
-D. Hallucination Detection
-- No invented issues
-- No invented rules
-- No invented line numbers
-- No unsupported security, performance, or correctness claims
+---
 
-Produce a FINAL VERDICT.
+# 3. Update Layout in DomainLandingPage.tsx
 
-We have implemented a GitLab CI–based email notification system to monitor the expiry of an ADP / EDP refresh token that has a fixed validity of 30 days and does not expose its expiry through any API. Because expiry cannot be queried programmatically, the system tracks expiry using a stored timestamp and scheduled checks. The implementation must be secure, GitLab-native, and must not interfere with existing merge request pipelines, SonarQube scans, or agent-based pipelines.
+Modify DomainLandingPage.tsx so that the main content renders:
 
-The design intentionally separates responsibilities into two independent pipelines. The first is a manual, write-only pipeline used only when a human rotates the refresh token. In this flow, the developer rotates the token outside GitLab (for example, in the ADP portal) and then manually updates the ADP refresh token value in GitLab CI/CD variables. The token value is never passed through CI scripts, never logged, and never transmitted via pipeline variables. After updating the token value, the developer manually triggers a dedicated GitLab job whose sole purpose is to record the rotation timestamp. This job updates only the REFRESH_TOKEN_CREATED_AT variable to the current UTC time using the GitLab API and may send a confirmation email indicating that the rotation has been recorded successfully. This job is never scheduled, never triggered automatically, and does not handle or read the token value itself.
+ChatContainer
 
-The second pipeline is a read-only, scheduled pipeline responsible for monitoring token expiry and sending reminder emails. This pipeline runs automatically via GitLab schedules, typically once per week, and is triggered only when the pipeline source is schedule. It reads the REFRESH_TOKEN_CREATED_AT variable and calculates how many days have passed since the last recorded rotation, using a fixed 30-day validity window. If the token is nearing expiry—such as when 21 days have passed or when specific thresholds like 9, 7, 5, 3, or 1 days remaining are reached—the pipeline sends an email reminder to developers. This scheduled job never updates any CI variables, never calls the GitLab API to write configuration, and never handles sensitive token values.
+instead of relying on a chatbot popup.
 
-All CI/CD variables serve as the single source of truth. The ADP refresh token itself is updated only by humans via the GitLab CI/CD variables UI. The rotation timestamp is updated only by the manual “mark rotation” job. The scheduled expiry-monitoring job only reads these variables. Under no circumstances are refresh tokens passed as job inputs, echoed in logs, or embedded in scripts.
+Example structure:
 
-The implementation is organized under a dedicated pipelines/ci-email directory. This directory contains scripts for calculating expiry (token_expiry_check.sh), sending expiry reminder emails (send_email.sh), recording token rotation timestamps (mark_refresh_token_rotated.sh), and sending rotation confirmation emails (send_rotation_confirmation_email.sh). Shared email framework scripts such as email_payload_data.sh and aws_ses_send_email.sh are reused without modification. HTML email templates are stored under an email-templates subdirectory and include templates for both expiry reminders and successful token rotation notifications. Email templates are selected using explicit flowType values and simple placeholder replacement.
+PageLayout
+   Navbar
+   ChatContainer
 
-Job rules are used to strictly control execution. The manual rotation job uses when: manual and never runs on merge requests or schedules. The expiry-monitoring job uses rules that allow execution only when the pipeline source is schedule, with an explicit when: never fallback to prevent accidental execution in other contexts. No delayed jobs, sleeps, cron logic, or long-running waits are used anywhere in the system.
+Ensure the chat container fills the remaining viewport height.
 
-Please verify that the current repository implementation adheres to this design. Specifically, confirm that no scripts handle or log the refresh token value, that only the manual job updates REFRESH_TOKEN_CREATED_AT, that the scheduled job is strictly read-only, that job rules prevent merge request execution, that email templates align with their corresponding flow types, and that expiry calculations are correctly based on a 30-day window. The expected outcome is a secure, auditable, GitLab-supported implementation that sends timely email notifications without risking secret exposure or pipeline interference
+Use flex layout:
+
+height: 100vh  
+display: flex  
+flex-direction: column  
+
+Chat area should use:
+
+flex: 1  
+overflow-y: auto
+
+---
+
+# 4. Chat UI Structure
+
+Ensure the chat interface has the following structure:
+
+ChatContainer
+
+Header  
+• Domain Management Assistant title  
+• welcome message  
+
+Suggestions Section  
+• Domain Procurement  
+• Subdomain Creation  
+• Domain Transfers  
+• DNS Management  
+• SSL Certificates  
+• Decommission Domain  
+
+Chat Messages Area  
+• Scrollable message list  
+• Displays user and assistant messages  
+
+Chat Input Area  
+• Text input  
+• Send button  
+• Positioned at the bottom  
+
+---
+
+# 5. Preserve Existing Functionalities
+
+Do NOT break any existing features.
+
+The following must continue working:
+
+• message sending  
+• assistant responses  
+• suggestion buttons  
+• typing indicator  
+• API integration in chatApi.ts  
+• chat history rendering  
+
+---
+
+# 6. Session Management Refactor
+
+Currently:
+A chat session is created when the chatbot icon is clicked.
+
+This must be changed.
+
+New behavior:
+
+• Create a session automatically when the chat loads
+• Session ID should refresh every 6 hours
+• The refresh duration must be configurable
+
+Implement something like:
+
+SESSION_REFRESH_INTERVAL = 6 hours
+
+The session logic should:
+
+• generate a sessionId
+• store it in state or context
+• refresh when the interval expires
+• ensure API requests always use the latest sessionId
+
+Prefer implementing this using a custom hook such as:
+
+useChatSession()
+
+---
+
+# 7. Code Optimization
+
+While refactoring:
+
+• Remove unused code
+• Remove unused imports
+• Remove dead popup logic
+• Simplify component structure where possible
+• Avoid unnecessary re-renders
+• Improve TypeScript typing
+
+---
+
+# 8. Code Readability
+
+Improve the code quality:
+
+• Use clear component names
+• Keep functions small
+• Extract reusable logic
+• Maintain consistent formatting
+
+---
+
+# 9. Comment Guidelines
+
+Improve comments but follow these rules:
+
+• comments must be minimal and meaningful
+• do NOT comment obvious lines
+• explain intent where necessary
+• avoid excessive comments
+
+Example good comment:
+
+// Refresh session periodically to prevent expired backend sessions
+
+---
+
+# 10. Styling
+
+The UI theme must remain:
+
+• white / light theme
+• clean and modern
+• responsive
+
+Ensure:
+
+• proper spacing
+• clean layout
+• good scroll behavior
+
+Use existing styles from:
+
+globals.css
+
+Do not introduce unnecessary CSS complexity.
+
+---
+
+# 11. Expected Output
+
+Modify the existing files in the project instead of generating a new project.
+
+Show the updated versions of the files that require changes, especially:
+
+ChatbotWidget.tsx  
+ChatContainer.tsx  
+Chat.tsx  
+DomainLandingPage.tsx  
+App.tsx  
+chatApi.ts  
+
+Ensure the final code is clean, optimized, and production-ready.
